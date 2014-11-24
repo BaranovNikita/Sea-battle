@@ -5,27 +5,25 @@ using System.Threading;
 using System.Net;
 using System.Text;
 
-namespace WindowsApplication2
+namespace SeaBattle
 {
-    
-
-    public partial class Form1 : Form
+    public partial class MainForm : Form
     {
-        public delegate void updateTextBoxDelegate(String textBoxString); 
-        public updateTextBoxDelegate updateTextBox;
-        void updateTextBox1(string str) { textBox4.Text = str; } 
-        public static IPAddress ip;
+        public delegate void UpdateTextBoxDelegate(String textBoxString);
+        public UpdateTextBoxDelegate UpdateTextBox;
+        void UpdateTextBox1(string str) { textBox4.Text = str; }
+        public static IPAddress Ip;
         readonly TcpClient _clientSocket = new TcpClient();
         NetworkStream _serverStream = default(NetworkStream);
         string _readData;
-        public Form1()
+        public MainForm()
         {
             InitializeComponent();
-            updateTextBox = new updateTextBoxDelegate( updateTextBox1 );
+            UpdateTextBox = UpdateTextBox1;
         }
         private void button2_Click(object sender, EventArgs e)
         {
-            var outStream = System.Text.Encoding.UTF8.GetBytes(textBox3.Text + "$");
+            var outStream = Encoding.UTF8.GetBytes(textBox3.Text + "$");
             _serverStream.Write(outStream, 0, outStream.Length);
             _serverStream.Flush();
         }
@@ -35,22 +33,22 @@ namespace WindowsApplication2
             Msg();
             try
             {
-                ip = IPAddress.Parse(ipAddressControl1.Text);
+                Ip = IPAddress.Parse(ipAddressControl1.Text);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Error: "+ex);
+                MessageBox.Show(@"Error: " + ex);
                 _readData = "ERROR";
                 Msg();
                 return;
             }
             try
             {
-                _clientSocket.Connect(ip, 8888);
+                _clientSocket.Connect(Ip, 8888);
             }
             catch (Exception)
             {
-                MessageBox.Show("Нет ответа от сервера");
+                MessageBox.Show(@"Нет ответа от сервера");
                 _readData = "ERROR";
                 Msg();
                 return;
@@ -97,7 +95,7 @@ namespace WindowsApplication2
         }
         private void button3_Click(object sender, EventArgs e)
         {
-            Thread serv = new Thread(Server.Start);
+            var serv = new Thread(Server.Start);
             serv.Start(this);
             button3.Enabled = false;
         }

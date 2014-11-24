@@ -1,33 +1,29 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
-namespace WindowsApplication2
+namespace SeaBattle
 {
     class Server
     {
-        public static IPAddress serverIp;
+        private static IPAddress _serverIp;
         public static Hashtable ClientsList = new Hashtable();
         public static void Start(object o)
         {
-            var pb = (Form1)o;
-            IPAddress myIp = IPAddress.Parse("127.0.0.1");
+            var pb = (MainForm)o;
             var ips = Dns.GetHostAddresses(Dns.GetHostName());
-            foreach (var ip in ips)
+            foreach (var ip in ips.Where(ip => ip.ToString().Contains("192.168")))
             {
-                if (ip.ToString().Contains("192.168"))
-                    serverIp = ip;
+                _serverIp = ip;
             }
-            pb.Invoke(pb.updateTextBox, serverIp.ToString()); 
-            var serverSocket = new TcpListener(serverIp, 8888);
+            pb.Invoke(pb.UpdateTextBox, _serverIp.ToString()); 
+            var serverSocket = new TcpListener(_serverIp, 8888);
             serverSocket.Start();
-            Console.WriteLine("Chat Server Started ....");
+            Console.WriteLine(@"Chat Server Started ....");
             while ((true))
             {
                 var clientSocket = serverSocket.AcceptTcpClient();
@@ -37,8 +33,8 @@ namespace WindowsApplication2
                 var dataFromClient = Encoding.UTF8.GetString(bytesFrom);
                 dataFromClient = dataFromClient.Substring(0, dataFromClient.IndexOf("$", StringComparison.Ordinal));
                 ClientsList.Add(dataFromClient, clientSocket);
-                Broadcast(dataFromClient + " Joined ", dataFromClient, false);
-                Console.WriteLine(dataFromClient + " Joined chat room ");
+                Broadcast(dataFromClient + @" Joined ", dataFromClient, false);
+                Console.WriteLine(dataFromClient + @" Joined chat room ");
                 var client = new HandleClinet();
                 client.StartClient(clientSocket, dataFromClient, ClientsList);
             }
@@ -82,7 +78,7 @@ namespace WindowsApplication2
                     networkStream.Read(bytesFrom, 0, bytesFrom.Length);
                     var dataFromClient = Encoding.UTF8.GetString(bytesFrom);
                     dataFromClient = dataFromClient.Substring(0, dataFromClient.IndexOf("$", StringComparison.Ordinal));
-                    Console.WriteLine("From client - " + _clNo + " : " + dataFromClient);
+                    Console.WriteLine(@"From client - " + _clNo + @" : " + dataFromClient);
                     Server.Broadcast(dataFromClient, _clNo, true);
                 }
                 catch (Exception ex)
