@@ -10,38 +10,58 @@ namespace SeaBattle
 {
     class Server
     {
-        private static IPAddress _serverIp;
-        public static Hashtable ClientsList = new Hashtable();
-        public static void Start(object o)
+        private static IPAddress _serverIp;//ip сервера
+        public static Hashtable ClientsList = new Hashtable();// подключенные клиентыы
+        private static bool _serverStarted; // проверка запущен ли сервер
+        private static TcpListener _serverSocket; // сервер
+        public static void Start(object o) //запуск сервера
         {
-            var pb = (MainForm)o;
+            var pb = (ServerSettings)o;
             var ips = Dns.GetHostAddresses(Dns.GetHostName());
             foreach (var ip in ips.Where(ip => ip.ToString().Contains("192.168")))
             {
                 _serverIp = ip;
             }
-            pb.Invoke(pb.UpdateTextBox, _serverIp.ToString()); 
-            var serverSocket = new TcpListener(_serverIp, 8888);
-            serverSocket.Start();
+            pb.Invoke(pb.UpdateIp, _serverIp.ToString());
+            _serverSocket = new TcpListener(_serverIp, 8888);
+            _serverSocket.Start();
+            _serverStarted = true;
             Console.WriteLine(@"Chat Server Started ....");
-            while ((true))
+            while (_serverStarted)
             {
-                var clientSocket = serverSocket.AcceptTcpClient();
-                var bytesFrom = new byte[4096];
-                var networkStream = clientSocket.GetStream();
-                networkStream.Read(bytesFrom, 0, bytesFrom.Length);
-                var dataFromClient = Encoding.UTF8.GetString(bytesFrom);
-                dataFromClient = dataFromClient.Substring(0, dataFromClient.IndexOf("$", StringComparison.Ordinal));
-                ClientsList.Add(dataFromClient, clientSocket);
-                Broadcast(dataFromClient + @" Joined ", dataFromClient, false);
-                Console.WriteLine(dataFromClient + @" Joined chat room ");
-                var client = new HandleClinet();
-                client.StartClient(clientSocket, dataFromClient, ClientsList);
+                try
+                {
+                    var clientSocket = _serverSocket.AcceptTcpClient();
+                    var bytesFrom = new byte[4096];
+                    var networkStream = clientSocket.GetStream();
+                    networkStream.Read(bytesFrom, 0, bytesFrom.Length);
+                    var dataFromClient = Encoding.UTF8.GetString(bytesFrom);
+                    dataFromClient = dataFromClient.Substring(0, dataFromClient.IndexOf("$", StringComparison.Ordinal));
+                    ClientsList.Add(dataFromClient, clientSocket);
+                    Broadcast(dataFromClient + @" Joined ", dataFromClient, false);
+                    Console.WriteLine(dataFromClient + @" Joined chat room ");
+                    var client = new HandleClinet();
+                    client.StartClient(clientSocket, dataFromClient, ClientsList);
+                }
+                catch (Exception)
+                {
+                }
             }
             // ReSharper disable once FunctionNeverReturns
         }
 
-        public static void Broadcast(string msg, string uName, bool flag)
+        public static void Stop()//остановкас сервера
+        {
+            _serverStarted = false;
+            _serverSocket.Stop();
+            Console.WriteLine(@" STOP");
+        }
+        public static bool IsStarted() // метод проверки запуска сервера
+        {
+            return _serverStarted;
+        }
+
+        public static void Broadcast(string msg, string uName, bool flag) // сообщения от клиентов
         {
             foreach (DictionaryEntry item in ClientsList)
             {
@@ -53,19 +73,19 @@ namespace SeaBattle
             }
         }
     }
-    public class HandleClinet
+    public class HandleClinet // клиент
     {
         TcpClient _clientSocket;
         string _clNo;
 
-        public void StartClient(TcpClient inClientSocket, string clineNo, Hashtable cList)
+        public void StartClient(TcpClient inClientSocket, string clineNo, Hashtable cList) //запуск клиента
         {
             _clientSocket = inClientSocket;
             _clNo = clineNo;
             var ctThread = new Thread(DoChat);
             ctThread.Start();
         }
-        private void DoChat()
+        private void DoChat() // отправка сообщения от клиента клиенту
         {
             var bytesFrom = new byte[4096];
             var requestCount = 0;
