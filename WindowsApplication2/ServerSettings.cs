@@ -9,9 +9,9 @@ namespace SeaBattle
 {
     public partial class ServerSettings : Form
     {
-        public static IPAddress Ip;
-        readonly TcpClient _clientSocket = new TcpClient();
-        NetworkStream _serverStream = default(NetworkStream);
+        public IPAddress Ip;
+        TcpClient _clientSocket = new TcpClient();
+        
         string _readData;
         public static Thread Server;
         public delegate void UpdateIpDelegate(String textBoxString);
@@ -69,46 +69,8 @@ namespace SeaBattle
                 MessageBox.Show(@"Error: " + ex);
                 _readData = "ERROR";
                 Console.WriteLine(_readData);
-                return;
-            }
-            try
-            {
-                _clientSocket.Connect(Ip, 8888);
-            }
-            catch (Exception)
-            {
-                MessageBox.Show(@"Нет ответа от сервера");
-                _readData = "ERROR";
-                Console.WriteLine(_readData);
-                ipServer.Enabled = true;
-                clientConnect.Enabled = true;
-                return;
-            }
-            _serverStream = _clientSocket.GetStream();
-            var outStream = Encoding.UTF8.GetBytes("client$");
-            _serverStream.Write(outStream, 0, outStream.Length);
-            _serverStream.Flush();
-            var ctThread = new Thread(GetMessage);
-            ctThread.Start();
-        }
-        private void SendMessage(string message)
-        {
-            var outStream = Encoding.UTF8.GetBytes(message + "$");
-            _serverStream.Write(outStream, 0, outStream.Length);
-            _serverStream.Flush();
-        }
-        private void GetMessage()
-        {
-            while (true)
-            {
-                _serverStream = _clientSocket.GetStream();
-                var inStream = new byte[4096];
-                _serverStream.Read(inStream, 0, inStream.Length);
-                var returndata = System.Text.Encoding.UTF8.GetString(inStream);
-                _readData = "" + returndata;
-                Console.WriteLine(_readData);
-            }
-            // ReSharper disable once FunctionNeverReturns
+             }
+            Client.CreateClient(Ip);
         }
     }
 }
